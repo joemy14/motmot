@@ -1,3 +1,3 @@
 return {
-	Currency = { Name = "Coins" },
+	Replace = { Name = "Coins" },
 }
