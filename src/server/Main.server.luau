@@ -1,0 +1,1 @@
+print("motmot server started")
