@@ -3,252 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>motmot · Builder</title>
+  <title>motmot · Files</title>
   <style>
     :root {
-      --bg-1: #140c24;
-      --bg-2: #2a1244;
-      --pink: #ff6fa8;
-      --violet: #a77bff;
-      --text: #f6eefc;
-      --muted: #b9a7d6;
-      --glass: rgba(255, 255, 255, 0.07);
-      --border: rgba(255, 255, 255, 0.14);
-      --ok: #7ef0b5;
-      --err: #ff8a9b;
+      --bg-1: #140c24; --bg-2: #2a1244; --pink: #ff6fa8; --violet: #a77bff;
+      --text: #f6eefc; --muted: #b9a7d6; --glass: rgba(255,255,255,.07);
+      --border: rgba(255,255,255,.14); --ok: #7ef0b5; --err: #ff8a9b; --warn: #ffd27a;
     }
-
     * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      color: var(--text);
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif; color: var(--text);
       background: radial-gradient(circle at 20% 10%, var(--bg-2), var(--bg-1) 70%);
-      overflow-x: hidden;
     }
-
-    /* Floating hearts background */
-    .hearts { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-    .heart {
-      position: absolute;
-      bottom: -40px;
-      font-size: 18px;
-      opacity: 0.35;
-      animation: rise linear infinite;
-    }
-    @keyframes rise {
-      from { transform: translateY(0) rotate(0deg); }
-      to   { transform: translateY(-115vh) rotate(25deg); }
-    }
-
-    .wrap {
-      position: relative;
-      z-index: 1;
-      max-width: 520px;
-      margin: 0 auto;
-      padding: calc(env(safe-area-inset-top) + 24px) 18px 40px;
-    }
-
-    header { text-align: center; margin-bottom: 22px; }
-    .title {
-      font-size: 34px;
-      font-weight: 800;
-      margin: 0;
+    .wrap { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 20px) 16px 40px; }
+    h1 {
+      font-size: 28px; margin: 0 0 4px;
       background: linear-gradient(90deg, var(--pink), var(--violet));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .subtitle { color: var(--muted); font-size: 14px; margin-top: 6px; }
-
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
     .card {
-      background: var(--glass);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 20px;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 10px 40px rgba(167, 123, 255, 0.15);
+      background: var(--glass); border: 1px solid var(--border); border-radius: 20px;
+      padding: 18px; margin-bottom: 16px;
     }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin: 0 0 8px;
+    h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    input, select, textarea {
+      width: 100%; padding: 13px 14px; margin-bottom: 10px;
+      border-radius: 12px; border: 1px solid var(--border);
+      background: rgba(10,5,20,.6); color: var(--text);
+      font: inherit; font-size: 15px; outline: none;
     }
-
-    .field { margin-bottom: 18px; }
-
-    input, textarea {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: rgba(10, 5, 20, 0.6);
-      color: var(--text);
-      font: inherit;
-      font-size: 16px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+    input:focus, select:focus, textarea:focus { border-color: var(--pink); }
+    textarea {
+      font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
+      min-height: 300px; resize: vertical; line-height: 1.45;
     }
-    input:focus, textarea:focus {
-      border-color: var(--pink);
-      box-shadow: 0 0 0 4px rgba(255, 111, 168, 0.18);
-    }
-    textarea { resize: vertical; min-height: 130px; }
-    input::placeholder, textarea::placeholder { color: #7d6b98; }
-
-    button#go {
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: 16px;
-      font: inherit;
-      font-size: 17px;
-      font-weight: 800;
-      color: #fff;
-      cursor: pointer;
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > * { flex: 1 1 130px; }
+    button {
+      padding: 13px; border: none; border-radius: 14px; font: inherit; font-weight: 700;
+      color: #fff; cursor: pointer; margin-bottom: 8px;
       background: linear-gradient(90deg, var(--pink), var(--violet));
-      box-shadow: 0 8px 24px rgba(255, 111, 168, 0.35);
-      transition: transform 0.1s, opacity 0.2s;
-      position: relative;
-      overflow: hidden;
     }
-    button#go:active { transform: scale(0.98); }
-    button#go:disabled { opacity: 0.85; cursor: wait; }
-    button#go.busy::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-      transform: translateX(-100%);
-      animation: shimmer 1.2s infinite;
+    button.danger { background: linear-gradient(90deg, #ff5f7a, #c93a5a); }
+    button.ghost { background: rgba(255,255,255,.1); border: 1px solid var(--border); }
+    button:disabled { opacity: .6; cursor: wait; }
+    .status {
+      margin-top: 12px; padding: 12px; border-radius: 12px;
+      border: 1px solid var(--border); background: rgba(10,5,20,.5);
+      color: var(--muted); white-space: pre-wrap; font-size: 14px; line-height: 1.5;
     }
-    @keyframes shimmer { to { transform: translateX(100%); } }
-
-    #output {
-      margin-top: 18px;
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      background: rgba(10, 5, 20, 0.5);
-      color: var(--muted);
-      white-space: pre-wrap;
-      font-size: 14px;
-      line-height: 1.5;
-      min-height: 56px;
-      transition: border-color 0.3s, color 0.3s;
-    }
-    #output.ok { color: var(--ok); border-color: rgba(126, 240, 181, 0.4); }
-    #output.err { color: var(--err); border-color: rgba(255, 138, 155, 0.4); }
-
-    footer { text-align: center; color: #6c5a8c; font-size: 12px; margin-top: 22px; }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--err); }
+    .status.warn { color: var(--warn); }
   </style>
 </head>
 <body>
-  <div class="hearts" id="hearts"></div>
-
   <div class="wrap">
-    <header>
-      <h1 class="title">motmot ✦ builder</h1>
-      <div class="subtitle">Describe the change. The AI writes it into your game.</div>
-    </header>
+    <h1>motmot ✦ files</h1>
+    <div class="sub">Browse, create, edit, and delete files in src/. Saves go to main.</div>
 
-    <main class="card">
-      <div class="field">
-        <label for="filePath">File path</label>
-        <input id="filePath" type="text" value="src/client/ShopUI.client.luau" placeholder="src/client/Something.client.luau" autocomplete="off">
+    <div class="card">
+      <h2>1. Pick a file</h2>
+      <select id="fileList"><option>Loading...</option></select>
+      <div class="row">
+        <button class="ghost" onclick="loadFiles()">Refresh list</button>
+        <button onclick="openSelected()">Open</button>
       </div>
+    </div>
 
-      <div class="field">
-        <label for="prompt">AI prompt</label>
-        <textarea id="prompt" placeholder="Paste the code or describe the change..."></textarea>
+    <div class="card">
+      <h2>2. New file</h2>
+      <input id="newPath" placeholder="src/client/NewThing.client.luau" autocomplete="off">
+      <button onclick="newFile()">Create empty file</button>
+    </div>
+
+    <div class="card">
+      <h2>3. Edit</h2>
+      <input id="currentPath" readonly placeholder="No file open">
+      <textarea id="editor" placeholder="Open a file to edit it here..."></textarea>
+      <div class="row">
+        <button onclick="saveFile()">Save to main</button>
+        <button class="danger" onclick="deleteFile()">Delete file</button>
       </div>
+    </div>
 
-      <button id="go">Generate &amp; Publish 💜</button>
-
-      <div id="output">Ready when you are ✨</div>
-    </main>
-
-    <footer>motmot · deploys from main</footer>
+    <div id="status" class="status">Ready ✨</div>
   </div>
 
   <script>
-    // Floating hearts
-    const heartsBox = document.getElementById('hearts');
-    const symbols = ['💜', '🩷', '✦', '♡'];
-    for (let i = 0; i < 14; i++) {
-      const h = document.createElement('span');
-      h.className = 'heart';
-      h.textContent = symbols[i % symbols.length];
-      h.style.left = Math.random() * 100 + 'vw';
-      h.style.fontSize = 12 + Math.random() * 18 + 'px';
-      h.style.animationDuration = 10 + Math.random() * 12 + 's';
-      h.style.animationDelay = -Math.random() * 15 + 's';
-      heartsBox.appendChild(h);
+    const $ = id => document.getElementById(id);
+    let openPath = null;
+
+    function say(msg, kind = '') {
+      const s = $('status');
+      s.className = 'status ' + kind;
+      s.textContent = msg;
     }
 
-    const btn = document.getElementById('go');
-    const out = document.getElementById('output');
-
-    function show(kind, text) {
-      out.className = kind;
-      out.textContent = text;
+    async function api(url, opts = {}) {
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+      return data;
     }
 
-    function setBusy(busy) {
-      btn.disabled = busy;
-      btn.classList.toggle('busy', busy);
-      btn.textContent = busy ? 'Working…' : 'Generate & Publish 💜';
-    }
-
-    async function deploy() {
-      const filePath = document.getElementById('filePath').value.trim();
-      const prompt = document.getElementById('prompt').value.trim();
-
-      if (!filePath) return show('err', 'Add a file path first, e.g. src/client/ShopUI.client.luau');
-      if (!prompt) return show('err', 'Paste a prompt or code first.');
-
-      setBusy(true);
-      show('', '⏳ AI is thinking and saving...');
-
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 170000);
-
+    async function loadFiles() {
+      say('Loading file list...');
       try {
-        const res = await fetch('/api/build', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, filePath }),
-          signal: controller.signal,
-        });
-
-        const data = await res.json().catch(() => ({
-          error: 'Server sent an unreadable reply (HTTP ' + res.status + ').',
-        }));
-
-        if (!res.ok || data.error) {
-          show('err', '❌ ' + (data.error || 'Request failed'));
-        } else {
-          show('ok', '✅ Saved: ' + data.written + '\n' + (data.note || ''));
-        }
-      } catch (err) {
-        show('err', err.name === 'AbortError'
-          ? '⚠️ Took too long. Check GitHub. The change may still have saved.'
-          : '❌ ' + err.message);
-      } finally {
-        clearTimeout(timer);
-        setBusy(false);
-      }
+        const data = await api('/api/files');
+        const sel = $('fileList');
+        sel.innerHTML = '';
+        if (!data.files.length) sel.add(new Option('(no files yet)', ''));
+        data.files.forEach(f => sel.add(new Option(f, f)));
+        say(`Found ${data.files.length} files on ${data.branch}.`, 'ok');
+      } catch (e) { say('❌ ' + e.message, 'err'); }
     }
 
-    btn.addEventListener('click', deploy);
+    async function openFile(p) {
+      say('Opening ' + p + '...');
+      try {
+        const data = await api('/api/file?path=' + encodeURIComponent(p));
+        openPath = p;
+        $('currentPath').value = p;
+        $('editor').value = data.content;
+        say('Opened ' + p, 'ok');
+      } catch (e) { say('❌ ' + e.message, 'err'); }
+    }
+
+    function openSelected() {
+      const p = $('fileList').value;
+      if (p) openFile(p);
+    }
+
+    function newFile() {
+      const p = $('newPath').value.trim();
+      if (!p.startsWith('src/')) return say('❌ Path must start with src/', 'err');
+      openPath = p;
+      $('currentPath').value = p;
+      $('editor').value = '';
+      say('New file ready. Write the content, then press Save to create it.', 'warn');
+    }
+
+    async function saveFile() {
+      const p = openPath;
+      if (!p) return say('❌ Open or create a file first.', 'err');
+      if (!confirm(`Save ${p} to main?\n\nMain publishes to your live game.`)) return;
+      say('Saving...');
+      try {
+        const data = await api('/api/file', {
+          method: 'PUT',
+          body: JSON.stringify({ path: p, content: $('editor').value }),
+        });
+        say(`✅ ${data.action}: ${p}\nCheck the Actions tab for the deploy.`, 'ok');
+        loadFiles();
+      } catch (e) { say('❌ ' + e.message, 'err'); }
+    }
+
+    async function deleteFile() {
+      const p = openPath;
+      if (!p) return say('❌ Open a file first.', 'err');
+      if (!confirm(`Delete ${p} from main?\n\nThis removes it from the live game on the next deploy.`)) return;
+      say('Deleting...');
+      try {
+        await api('/api/file', {
+          method: 'DELETE',
+          body: JSON.stringify({ path: p }),
+        });
+        openPath = null;
+        $('currentPath').value = '';
+        $('editor').value = '';
+        say(`✅ Deleted ${p}`, 'ok');
+        loadFiles();
+      } catch (e) { say('❌ ' + e.message, 'err'); }
+    }
+
+    loadFiles();
   </script>
 </body>
 </html>
