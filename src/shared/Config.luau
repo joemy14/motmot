@@ -1,0 +1,3 @@
+return {
+	Currency = { Name = "Coins" },
+}
