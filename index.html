@@ -39,6 +39,7 @@
       font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
       min-height: 300px; resize: vertical; line-height: 1.45;
     }
+    textarea.small { min-height: 70px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .row > * { flex: 1 1 130px; }
     button {
@@ -49,6 +50,7 @@
     button.danger { background: linear-gradient(90deg, #ff5f7a, #c93a5a); }
     button.ghost { background: rgba(255,255,255,.1); border: 1px solid var(--border); }
     button:disabled { opacity: .6; cursor: wait; }
+    .hint { font-size: 12px; color: #8f7daf; margin-bottom: 10px; }
     .status {
       margin-top: 12px; padding: 12px; border-radius: 12px;
       border: 1px solid var(--border); background: rgba(10,5,20,.5);
@@ -87,6 +89,17 @@
         <button onclick="saveFile()">Save to main</button>
         <button class="danger" onclick="deleteFile()">Delete file</button>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>4. Find &amp; replace</h2>
+      <textarea id="findText" class="small" placeholder="Exact text to find (copy it from the editor)"></textarea>
+      <textarea id="replaceText" class="small" placeholder="New text to put in its place"></textarea>
+      <div class="row">
+        <button class="ghost" onclick="previewReplace()">Check matches</button>
+        <button onclick="applyReplace()">Replace in editor</button>
+      </div>
+      <div class="hint">Replace only changes the box above. Press "Save to main" after you check it.</div>
     </div>
 
     <div id="status" class="status">Ready ✨</div>
@@ -147,6 +160,36 @@
       $('currentPath').value = p;
       $('editor').value = '';
       say('New file ready. Write the content, then press Save to create it.', 'warn');
+    }
+
+    // Count how many times the find text appears in the editor
+    function countMatches() {
+      const find = $('findText').value;
+      if (!find) return { find, count: 0, error: 'Type the text to find first.' };
+      const text = $('editor').value;
+      const count = text.split(find).length - 1;
+      return { find, count };
+    }
+
+    function previewReplace() {
+      const { count, error } = countMatches();
+      if (error) return say('❌ ' + error, 'err');
+      if (count === 0) return say('❌ Not found. Check spelling, spaces, and line breaks.', 'err');
+      if (count > 1) return say(`⚠️ Found ${count} times. Make the find text longer so it matches once.`, 'warn');
+      say('✅ Found exactly once. Tap "Replace in editor" to apply it.', 'ok');
+    }
+
+    function applyReplace() {
+      const { find, count, error } = countMatches();
+      if (error) return say('❌ ' + error, 'err');
+      if (count !== 1) {
+        return say(count === 0
+          ? '❌ Not found. Nothing changed.'
+          : `⚠️ Found ${count} times. Nothing changed. Make the find text longer.`, count === 0 ? 'err' : 'warn');
+      }
+      const replacement = $('replaceText').value;
+      $('editor').value = $('editor').value.replace(find, () => replacement);
+      say('✅ Replaced in the editor. Check it, then tap "Save to main".', 'ok');
     }
 
     async function saveFile() {
