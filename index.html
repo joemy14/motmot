@@ -1,71 +1,254 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Mobile Roblox AI Builder</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>motmot · Builder</title>
   <style>
-    body { font-family: -apple-system, sans-serif; padding: 20px; background: #1e1e1e; color: white; margin: 0; }
-    h2 { color: #00b06f; margin-top: 0; }
-    label { font-size: 14px; color: #aaa; display: block; margin-bottom: 5px; }
-    input, textarea, button { width: 100%; padding: 14px; margin-bottom: 20px; border-radius: 10px; border: 1px solid #444; background: #2d2d2d; color: white; font-size: 16px; box-sizing: border-box; }
-    button { background: #00b06f; color: white; font-weight: bold; border: none; cursor: pointer; font-size: 18px; }
-    button:active { background: #008f5a; }
-    #output { background: #2d2d2d; padding: 15px; border-radius: 10px; white-space: pre-wrap; font-size: 14px; border: 1px solid #444; min-height: 50px; }
+    :root {
+      --bg-1: #140c24;
+      --bg-2: #2a1244;
+      --pink: #ff6fa8;
+      --violet: #a77bff;
+      --text: #f6eefc;
+      --muted: #b9a7d6;
+      --glass: rgba(255, 255, 255, 0.07);
+      --border: rgba(255, 255, 255, 0.14);
+      --ok: #7ef0b5;
+      --err: #ff8a9b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 10%, var(--bg-2), var(--bg-1) 70%);
+      overflow-x: hidden;
+    }
+
+    /* Floating hearts background */
+    .hearts { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .heart {
+      position: absolute;
+      bottom: -40px;
+      font-size: 18px;
+      opacity: 0.35;
+      animation: rise linear infinite;
+    }
+    @keyframes rise {
+      from { transform: translateY(0) rotate(0deg); }
+      to   { transform: translateY(-115vh) rotate(25deg); }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top) + 24px) 18px 40px;
+    }
+
+    header { text-align: center; margin-bottom: 22px; }
+    .title {
+      font-size: 34px;
+      font-weight: 800;
+      margin: 0;
+      background: linear-gradient(90deg, var(--pink), var(--violet));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .subtitle { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 10px 40px rgba(167, 123, 255, 0.15);
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+
+    .field { margin-bottom: 18px; }
+
+    input, textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(10, 5, 20, 0.6);
+      color: var(--text);
+      font: inherit;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 4px rgba(255, 111, 168, 0.18);
+    }
+    textarea { resize: vertical; min-height: 130px; }
+    input::placeholder, textarea::placeholder { color: #7d6b98; }
+
+    button#go {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 16px;
+      font: inherit;
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--pink), var(--violet));
+      box-shadow: 0 8px 24px rgba(255, 111, 168, 0.35);
+      transition: transform 0.1s, opacity 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    button#go:active { transform: scale(0.98); }
+    button#go:disabled { opacity: 0.85; cursor: wait; }
+    button#go.busy::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      transform: translateX(-100%);
+      animation: shimmer 1.2s infinite;
+    }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+
+    #output {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(10, 5, 20, 0.5);
+      color: var(--muted);
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 56px;
+      transition: border-color 0.3s, color 0.3s;
+    }
+    #output.ok { color: var(--ok); border-color: rgba(126, 240, 181, 0.4); }
+    #output.err { color: var(--err); border-color: rgba(255, 138, 155, 0.4); }
+
+    footer { text-align: center; color: #6c5a8c; font-size: 12px; margin-top: 22px; }
   </style>
 </head>
 <body>
-  <h2>📱 Mobile Roblox AI Builder</h2>
-  
-  <label>File Path:</label>
-  <input type="text" id="filePath" value="src/main.server.luau" placeholder="e.g., src/main.server.luau">
-  
-  <label>AI Prompt:</label>
-  <textarea id="prompt" rows="6" placeholder="Describe what you want..."></textarea>
-  
-  <button onclick="deploy()">Generate & Publish</button>
-  
-  <div id="output">Waiting for command...</div>
+  <div class="hearts" id="hearts"></div>
+
+  <div class="wrap">
+    <header>
+      <h1 class="title">motmot ✦ builder</h1>
+      <div class="subtitle">Describe the change. The AI writes it into your game.</div>
+    </header>
+
+    <main class="card">
+      <div class="field">
+        <label for="filePath">File path</label>
+        <input id="filePath" type="text" value="src/client/ShopUI.client.luau" placeholder="src/client/Something.client.luau" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="prompt">AI prompt</label>
+        <textarea id="prompt" placeholder="Paste the code or describe the change..."></textarea>
+      </div>
+
+      <button id="go">Generate &amp; Publish 💜</button>
+
+      <div id="output">Ready when you are ✨</div>
+    </main>
+
+    <footer>motmot · deploys from main</footer>
+  </div>
 
   <script>
+    // Floating hearts
+    const heartsBox = document.getElementById('hearts');
+    const symbols = ['💜', '🩷', '✦', '♡'];
+    for (let i = 0; i < 14; i++) {
+      const h = document.createElement('span');
+      h.className = 'heart';
+      h.textContent = symbols[i % symbols.length];
+      h.style.left = Math.random() * 100 + 'vw';
+      h.style.fontSize = 12 + Math.random() * 18 + 'px';
+      h.style.animationDuration = 10 + Math.random() * 12 + 's';
+      h.style.animationDelay = -Math.random() * 15 + 's';
+      heartsBox.appendChild(h);
+    }
+
+    const btn = document.getElementById('go');
+    const out = document.getElementById('output');
+
+    function show(kind, text) {
+      out.className = kind;
+      out.textContent = text;
+    }
+
+    function setBusy(busy) {
+      btn.disabled = busy;
+      btn.classList.toggle('busy', busy);
+      btn.textContent = busy ? 'Working…' : 'Generate & Publish 💜';
+    }
+
     async function deploy() {
-      const output = document.getElementById('output');
-      const btn = document.querySelector('button');
-      output.innerText = "⏳ AI is thinking and deploying...";
-      btn.disabled = true;
-      btn.innerText = "Working...";
-      
+      const filePath = document.getElementById('filePath').value.trim();
+      const prompt = document.getElementById('prompt').value.trim();
+
+      if (!filePath) return show('err', 'Add a file path first, e.g. src/client/ShopUI.client.luau');
+      if (!prompt) return show('err', 'Paste a prompt or code first.');
+
+      setBusy(true);
+      show('', '⏳ AI is thinking and saving...');
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 170000);
+
       try {
-        // POINTING TO YOUR RENDER BACKEND!
-        const res = await fetch('https://mobile-roblox-builder.onrender.com/api/build', {
+        const res = await fetch('/api/build', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: document.getElementById('prompt').value,
-            filePath: document.getElementById('filePath').value
-          })
+          body: JSON.stringify({ prompt, filePath }),
+          signal: controller.signal,
         });
-        
-        const rawText = await res.text(); 
-        if (!rawText) {
-          output.innerText = "⚠️ Empty response. Check Render logs!";
-          btn.disabled = false;
-          btn.innerText = "Generate & Publish";
-          return;
-        }
-        
-        const data = JSON.parse(rawText); 
-        output.innerText = data.message || data.error || "Done!";
-      } catch (err) {
-        output.innerText = "❌ Error: " + err.message;
-      }
-      
-      btn.disabled = false;
-      btn.innerText = "Generate & Publish";
-    }
-  </script>
 
-  <!-- Mobile Debug Console -->
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
+        const data = await res.json().catch(() => ({
+          error: 'Server sent an unreadable reply (HTTP ' + res.status + ').',
+        }));
+
+        if (!res.ok || data.error) {
+          show('err', '❌ ' + (data.error || 'Request failed'));
+        } else {
+          show('ok', '✅ Saved: ' + data.written + '\n' + (data.note || ''));
+        }
+      } catch (err) {
+        show('err', err.name === 'AbortError'
+          ? '⚠️ Took too long. Check GitHub. The change may still have saved.'
+          : '❌ ' + err.message);
+      } finally {
+        clearTimeout(timer);
+        setBusy(false);
+      }
+    }
+
+    btn.addEventListener('click', deploy);
+  </script>
 </body>
 </html>
