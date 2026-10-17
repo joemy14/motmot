@@ -11,6 +11,8 @@ local CAM = BOOTH + Vector3.new(0, 4.5, 9)
 local SHOT_COUNT = 4
 local COUNTDOWN = 3
 local PINK = Color3.fromRGB(255, 111, 168)
+local CREAM = Color3.fromRGB(255, 240, 246)
+local FRAME_BG = Color3.fromRGB(255, 215, 230)
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "PhotoBoothGui"
@@ -79,9 +81,11 @@ local function snapshot(character)
 	return clone
 end
 
+-- Puts one snapshot in a bright, close-up preview
 local function fillViewport(vp, model)
 	local cam = Instance.new("Camera")
-	cam.CFrame = CFrame.lookAt(Vector3.new(0, 3.2, -9), Vector3.new(0, 3, 0))
+	-- Closer and a little higher, so the character fills the frame
+	cam.CFrame = CFrame.lookAt(Vector3.new(0, 3.6, -5.5), Vector3.new(0, 3.2, 0))
 	cam.Parent = vp
 	vp.CurrentCamera = cam
 
@@ -90,28 +94,42 @@ local function fillViewport(vp, model)
 	copy:PivotTo(CFrame.new(0, 3, 0))
 end
 
+-- Vertical strip of small landscape photos on a light background
 local function buildStrip(parent, list)
 	local strip = Instance.new("Frame")
 	strip.Size = UDim2.fromScale(1, 1)
-	strip.BackgroundColor3 = Color3.fromRGB(25, 20, 30)
+	strip.BackgroundColor3 = CREAM
 	strip.BorderSizePixel = 0
 	strip.Parent = parent
 
 	local layout = Instance.new("UIListLayout")
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.Padding = UDim.new(0.02, 0)
+	layout.Padding = UDim.new(0.025, 0)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = strip
+
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0.03, 0)
+	pad.PaddingBottom = UDim.new(0.03, 0)
+	pad.Parent = strip
 
 	for i, shot in ipairs(list) do
 		local vp = Instance.new("ViewportFrame")
 		vp.LayoutOrder = i
-		vp.Size = UDim2.new(0.9, 0, 0.22, 0)
-		vp.BackgroundColor3 = Color3.fromRGB(255, 215, 230)
-		vp.Ambient = Color3.fromRGB(190, 190, 190)
+		-- Small landscape rectangle, not a tall one
+		vp.Size = UDim2.new(0.7, 0, 0.21, 0)
+		vp.BackgroundColor3 = FRAME_BG
+		vp.BackgroundTransparency = 0
+		vp.Ambient = Color3.new(1, 1, 1)
 		vp.LightColor = Color3.new(1, 1, 1)
+		vp.LightDirection = Vector3.new(-0.3, -1, -0.5)
 		vp.Parent = strip
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.08, 0)
+		corner.Parent = vp
+
 		pcall(fillViewport, vp, shot)
 	end
 	return strip
@@ -145,7 +163,7 @@ local function showStripOverlay(onDone)
 	overlay.Parent = gui
 
 	local holder = Instance.new("Frame")
-	holder.Size = UDim2.fromScale(0.36, 0.86)
+	holder.Size = UDim2.fromScale(0.26, 0.82)
 	holder.AnchorPoint = Vector2.new(0.5, 0.5)
 	holder.Position = UDim2.fromScale(0.5, 0.47)
 	holder.BackgroundTransparency = 1
@@ -189,7 +207,6 @@ local function runSession()
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.CFrame = CFrame.lookAt(CAM, SPOT + Vector3.new(0, 1.5, 0))
 
-	-- Always restore the player, even if something below fails
 	local ok, err = pcall(function()
 		for i = 1, SHOT_COUNT do
 			for n = COUNTDOWN, 1, -1 do
