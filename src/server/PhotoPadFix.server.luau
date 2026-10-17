@@ -1,24 +1,21 @@
 local Workspace = game:GetService("Workspace")
 
-local PHOTO_ENTRY = CFrame.new(1800, 6, 200) -- center of the booth, raised so you don't clip into the floor
 local PAD_POS = Vector3.new(0, 1, 20)
 local PINK = Color3.fromRGB(255, 150, 190)
 
--- Give the other room scripts time to build first
-task.wait(5)
-
--- Remove the cozy room
+-- Remove the cozy room and any old pads
 local cozy = Workspace:FindFirstChild("HangoutRoom")
 if cozy then cozy:Destroy() end
 
--- Remove leftover pads so only one pink pad leads to the booth
+task.wait(5)
+
 for _, child in ipairs(Workspace:GetChildren()) do
 	if child:IsA("BasePart") and (child.Name == "RoomPad" or child.Name == "PhotoPad") then
 		child:Destroy()
 	end
 end
 
--- New photo booth pad on the start platform
+-- New pad on the start platform
 local pad = Instance.new("Part")
 pad.Name = "PhotoPad"
 pad.Size = Vector3.new(8, 0.2, 8)
@@ -28,10 +25,23 @@ pad.Color = PINK
 pad.Material = Enum.Material.Neon
 pad.Parent = Workspace
 
+local busy = false
+
 pad.Touched:Connect(function(hit)
+	if busy then return end
 	local root = hit.Parent and hit.Parent:FindFirstChild("HumanoidRootPart")
-	if root then
-		print("PhotoPad: sending to booth")
-		root.CFrame = PHOTO_ENTRY
+	if not root then return end
+
+	-- Find the booth's real floor, so we land on it instead of guessing coordinates
+	local booth = Workspace:FindFirstChild("PhotoBooth")
+	local floor = booth and booth:FindFirstChild("Floor")
+	if not floor then
+		warn("PhotoPad: PhotoBooth floor not found. The booth file may not have built.")
+		return
 	end
+
+	busy = true
+	root.CFrame = floor.CFrame + Vector3.new(0, 4, 0)
+	task.wait(1)
+	busy = false
 end)
