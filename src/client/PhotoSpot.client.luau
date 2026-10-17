@@ -138,17 +138,27 @@ end
 local function updateWall()
 	local booth = Workspace:FindFirstChild("PhotoBooth")
 	local wall = booth and booth:FindFirstChild("StripWall")
-	if not wall then return end
+	if not wall then
+		warn("PhotoBooth: StripWall not found")
+		return
+	end
 
-	local old = wall:FindFirstChild("StripGui")
-	if old then old:Destroy() end
+	local sg = wall:FindFirstChild("StripGui")
+	if not sg then
+		sg = Instance.new("SurfaceGui")
+		sg.Name = "StripGui"
+		sg.Face = Enum.NormalId.Left
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 50
+		sg.LightInfluence = 0 -- keeps the strip bright, not shaded
+		sg.Parent = wall
+	end
 
-	local sg = Instance.new("SurfaceGui")
-	sg.Name = "StripGui"
-	sg.Face = Enum.NormalId.Left
-	sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	sg.PixelsPerStud = 50
-	sg.Parent = wall
+	-- Clear the old strip, then draw the new one
+	for _, child in ipairs(sg:GetChildren()) do
+		child:Destroy()
+	end
+	sg.Enabled = true
 	buildStrip(sg, shots)
 end
 
