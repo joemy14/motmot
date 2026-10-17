@@ -1,231 +1,115 @@
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
-local player = Players.LocalPlayer
-local camera = Workspace.CurrentCamera
+local ORIGIN = Vector3.new(1800, 0, 200)
+local PAD_POS = Vector3.new(0, 1, 20)
+local RETURN_CF = CFrame.new(-20, 3, -14)
 
-local BOOTH = Vector3.new(1800, 0, 200)
-local SPOT = BOOTH + Vector3.new(0, 3, -2)
-local CAM = BOOTH + Vector3.new(0, 4.5, 9)
-local SHOT_COUNT = 4
-local COUNTDOWN = 3
-local PINK = Color3.fromRGB(255, 111, 168)
+local PINK = Color3.fromRGB(255, 150, 190)
+local PINK_DARK = Color3.fromRGB(230, 110, 160)
+local CREAM = Color3.fromRGB(255, 240, 225)
+local WHITE = Color3.fromRGB(250, 250, 250)
+local CHARCOAL = Color3.fromRGB(40, 35, 45)
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "PhotoBoothGui"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.Parent = player:WaitForChild("PlayerGui")
-
--- Start button sits above the hotbar
-local startButton = Instance.new("TextButton")
-startButton.Name = "StartButton"
-startButton.Text = "📸 Start photo booth"
-startButton.Font = Enum.Font.GothamBold
-startButton.TextScaled = true
-startButton.TextColor3 = Color3.new(1, 1, 1)
-startButton.BackgroundColor3 = PINK
-startButton.BorderSizePixel = 0
-startButton.Size = UDim2.fromScale(0.34, 0.06)
-startButton.AnchorPoint = Vector2.new(0.5, 0.5)
-startButton.Position = UDim2.fromScale(0.5, 0.6)
-startButton.Visible = false
-startButton.Parent = gui
-Instance.new("UICorner", startButton).CornerRadius = UDim.new(0.3, 0)
-
--- Countdown text
-local countLabel = Instance.new("TextLabel")
-countLabel.Name = "Countdown"
-countLabel.Size = UDim2.fromScale(0.5, 0.2)
-countLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-countLabel.Position = UDim2.fromScale(0.5, 0.4)
-countLabel.BackgroundTransparency = 1
-countLabel.Font = Enum.Font.GothamBlack
-countLabel.TextScaled = true
-countLabel.TextColor3 = Color3.new(1, 1, 1)
-countLabel.TextStrokeTransparency = 0
-countLabel.Text = ""
-countLabel.Parent = gui
-
-local running = false
-local shots = {}
-
-local function flash()
-	local f = Instance.new("Frame")
-	f.Size = UDim2.fromScale(1, 1)
-	f.BackgroundColor3 = Color3.new(1, 1, 1)
-	f.BorderSizePixel = 0
-	f.ZIndex = 10
-	f.Parent = gui
-	TweenService:Create(f, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
-	task.delay(0.6, function() f:Destroy() end)
-end
-
--- Frozen copy of the character, pose included
-local function snapshot(character)
-	local clone = character:Clone()
-	for _, d in ipairs(clone:GetDescendants()) do
-		if d:IsA("Script") or d:IsA("LocalScript") or d:IsA("Animator") or d:IsA("Animation") or d:IsA("Sound") then
-			d:Destroy()
-		elseif d:IsA("BasePart") then
-			d.Anchored = true
-			d.CanCollide = false
-		end
+-- Clear old copies so there is only one of each
+local oldBooth = Workspace:FindFirstChild("PhotoBooth")
+if oldBooth then oldBooth:Destroy() end
+local cozy = Workspace:FindFirstChild("HangoutRoom")
+if cozy then cozy:Destroy() end
+for _, c in ipairs(Workspace:GetChildren()) do
+	if c:IsA("BasePart") and (c.Name == "PhotoPad" or c.Name == "RoomPad" or c.Name == "BoothPad") then
+		c:Destroy()
 	end
-	return clone
 end
 
--- Puts one snapshot inside a ViewportFrame, facing the camera
-local function fillViewport(vp, model)
-	local cam = Instance.new("Camera")
-	cam.CFrame = CFrame.lookAt(Vector3.new(0, 3.2, -9), Vector3.new(0, 3, 0))
-	cam.Parent = vp
-	vp.CurrentCamera = cam
+local booth = Instance.new("Model")
+booth.Name = "PhotoBooth"
+booth.Parent = Workspace
 
-	local copy = model:Clone()
-	copy.Parent = vp
-	copy:PivotTo(CFrame.new(0, 3, 0))
+local function part(name, size, pos, color, material)
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.Position = ORIGIN + pos
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	p.Anchored = true
+	p.Parent = booth
+	return p
 end
 
--- Vertical film strip of all shots
-local function buildStrip(parent, list)
-	local strip = Instance.new("Frame")
-	strip.Size = UDim2.fromScale(1, 1)
-	strip.BackgroundColor3 = Color3.fromRGB(25, 20, 30)
-	strip.BorderSizePixel = 0
-	strip.Parent = parent
+-- Room (floor top is at y = 1)
+part("Floor", Vector3.new(30, 1, 30), Vector3.new(0, 0.5, 0), CREAM, Enum.Material.Marble)
+part("BackWall", Vector3.new(30, 14, 1), Vector3.new(0, 7, -15.5), PINK)
+part("LeftWall", Vector3.new(1, 14, 30), Vector3.new(-15.5, 7, 0), PINK_DARK)
+part("RightWall", Vector3.new(1, 14, 30), Vector3.new(15.5, 7, 0), PINK_DARK)
 
-	local layout = Instance.new("UIListLayout")
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.Padding = UDim.new(0.02, 0)
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = strip
-
-	for i, shot in ipairs(list) do
-		local vp = Instance.new("ViewportFrame")
-		vp.LayoutOrder = i
-		vp.Size = UDim2.new(0.9, 0, 0.22, 0)
-		vp.BackgroundColor3 = Color3.fromRGB(255, 215, 230)
-		vp.Ambient = Color3.fromRGB(190, 190, 190)
-		vp.LightColor = Color3.new(1, 1, 1)
-		vp.Parent = strip
-		fillViewport(vp, shot)
-	end
-	return strip
+-- Ceiling lights
+for i = -1, 1 do
+	part("CeilingLight" .. i, Vector3.new(3, 0.3, 26), Vector3.new(i * 9, 13.8, 0), WHITE, Enum.Material.Neon)
 end
 
--- Shows the strip on the booth's outside wall
-local function updateWall()
-	local booth = Workspace:FindFirstChild("PhotoBooth")
-	local wall = booth and booth:FindFirstChild("StripWall")
-	if not wall then return end
+-- Sign
+local sign = part("Sign", Vector3.new(18, 3.5, 0.4), Vector3.new(0, 11.5, -14.7), CHARCOAL, Enum.Material.Neon)
+local signGui = Instance.new("SurfaceGui")
+signGui.Face = Enum.NormalId.Back
+signGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+signGui.PixelsPerStud = 40
+signGui.Parent = sign
+local signText = Instance.new("TextLabel")
+signText.Size = UDim2.fromScale(0.92, 0.88)
+signText.Position = UDim2.fromScale(0.5, 0.5)
+signText.AnchorPoint = Vector2.new(0.5, 0.5)
+signText.BackgroundTransparency = 1
+signText.Text = "Photo Booth 📸"
+signText.Font = Enum.Font.GothamBold
+signText.TextScaled = true
+signText.TextColor3 = Color3.fromRGB(255, 200, 225)
+signText.Parent = signGui
 
-	local old = wall:FindFirstChild("StripGui")
-	if old then old:Destroy() end
+-- Mirror
+part("MirrorFrame", Vector3.new(10.6, 8.6, 0.4), Vector3.new(0, 5.5, -14.8), WHITE, Enum.Material.Metal)
+local mirror = part("Mirror", Vector3.new(10, 8, 0.2), Vector3.new(0, 5.5, -14.4), Color3.fromRGB(200, 230, 240), Enum.Material.Glass)
+mirror.Reflectance = 0.6
 
-	local sg = Instance.new("SurfaceGui")
-	sg.Name = "StripGui"
-	sg.Face = Enum.NormalId.Left
-	sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	sg.PixelsPerStud = 50
-	sg.Parent = wall
-	buildStrip(sg, shots)
-end
+-- Floor mark where you stand
+local mark = part("StandMark", Vector3.new(4, 0.1, 4), Vector3.new(0, 1.05, -2), PINK, Enum.Material.Neon)
+mark.Transparency = 0.5
 
--- Full-screen strip with a Done button
-local function showStripOverlay(onDone)
-	local overlay = Instance.new("Frame")
-	overlay.Name = "StripOverlay"
-	overlay.Size = UDim2.fromScale(1, 1)
-	overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-	overlay.BackgroundTransparency = 0.35
-	overlay.BorderSizePixel = 0
-	overlay.Parent = gui
+-- Wall where the photo strip appears (the client script draws on this)
+part("StripWall", Vector3.new(0.4, 12, 9), Vector3.new(14.8, 7, 0), WHITE)
 
-	local holder = Instance.new("Frame")
-	holder.Size = UDim2.fromScale(0.36, 0.86)
-	holder.AnchorPoint = Vector2.new(0.5, 0.5)
-	holder.Position = UDim2.fromScale(0.5, 0.47)
-	holder.BackgroundTransparency = 1
-	holder.Parent = overlay
-	buildStrip(holder, shots)
-
-	local done = Instance.new("TextButton")
-	done.Name = "Done"
-	done.Text = "Done"
-	done.Font = Enum.Font.GothamBold
-	done.TextScaled = true
-	done.TextColor3 = Color3.new(1, 1, 1)
-	done.BackgroundColor3 = PINK
-	done.BorderSizePixel = 0
-	done.Size = UDim2.fromScale(0.16, 0.06)
-	done.AnchorPoint = Vector2.new(0.5, 0.5)
-	done.Position = UDim2.fromScale(0.85, 0.08)
-	done.Parent = overlay
-	Instance.new("UICorner", done).CornerRadius = UDim.new(0.3, 0)
-
-	done.MouseButton1Click:Connect(function()
-		overlay:Destroy()
-		onDone()
-	end)
-end
-
-local function runSession()
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not (root and humanoid) then return end
-
-	running = true
-	startButton.Visible = false
-
-	for _, s in ipairs(shots) do s:Destroy() end
-	shots = {}
-
-	-- Stand still, face the camera, lock the view
-	local oldWalk, oldJump = humanoid.WalkSpeed, humanoid.JumpPower
-	humanoid.WalkSpeed = 0
-	humanoid.JumpPower = 0
-	root.CFrame = CFrame.lookAt(SPOT, Vector3.new(CAM.X, SPOT.Y, CAM.Z))
-	camera.CameraType = Enum.CameraType.Scriptable
-	camera.CFrame = CFrame.lookAt(CAM, SPOT + Vector3.new(0, 1.5, 0))
-
-	for i = 1, SHOT_COUNT do
-		for n = COUNTDOWN, 1, -1 do
-			countLabel.Text = string.format("Photo %d/%d\n%d", i, SHOT_COUNT, n)
-			task.wait(1)
-		end
-		countLabel.Text = "📸"
-		flash()
-		table.insert(shots, snapshot(character))
-		task.wait(0.4)
-	end
-	countLabel.Text = ""
-
-	humanoid.WalkSpeed = oldWalk
-	humanoid.JumpPower = oldJump
-	camera.CameraType = Enum.CameraType.Custom
-
-	updateWall()
-	showStripOverlay(function()
-		running = false
-	end)
-end
-
-startButton.MouseButton1Click:Connect(function()
-	task.spawn(runSession)
+-- Way back to the start
+local returnPad = part("ReturnPad", Vector3.new(6, 0.2, 6), Vector3.new(-11, 1.1, 11), PINK, Enum.Material.Neon)
+local busyReturn = false
+returnPad.Touched:Connect(function(hit)
+	if busyReturn then return end
+	local root = hit.Parent and hit.Parent:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	busyReturn = true
+	root.CFrame = RETURN_CF
+	task.wait(1)
+	busyReturn = false
 end)
 
--- Show the start button only when you stand inside the booth
-task.spawn(function()
-	while true do
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if root and not running then
-			startButton.Visible = (root.Position - SPOT).Magnitude < 8
-		end
-		task.wait(0.3)
-	end
+-- Entry pad on the start platform (outside the booth model)
+local entryPad = Instance.new("Part")
+entryPad.Name = "BoothPad"
+entryPad.Size = Vector3.new(8, 0.2, 8)
+entryPad.Position = PAD_POS
+entryPad.Anchored = true
+entryPad.Color = PINK
+entryPad.Material = Enum.Material.Neon
+entryPad.Parent = Workspace
+
+local busyEntry = false
+entryPad.Touched:Connect(function(hit)
+	if busyEntry then return end
+	local root = hit.Parent and hit.Parent:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	busyEntry = true
+	root.CFrame = CFrame.new(ORIGIN + Vector3.new(0, 4, 0))
+	task.wait(1)
+	busyEntry = false
 end)
+
+print("PhotoBooth built")
