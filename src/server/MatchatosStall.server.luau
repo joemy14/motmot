@@ -105,15 +105,19 @@ cupAt("DisplayCoffee1", Vector3.new(-2, 5.3, -4), COFFEE)
 cupAt("DisplayMatcha2", Vector3.new(1, 5.3, -4), MATCHA)
 cupAt("DisplayCoffee2", Vector3.new(4, 5.3, -4), COFFEE)
 
--- Equippable cups. Everything is built upright along the handle's Y axis,
--- then the Grip tilts the whole cup into the hand.
-local function addPart(tool, handle, name, shape, size, localCF, color, material)
+-- Equippable cups.
+-- The handle is invisible and sits at the cup's center, so the hand wraps the middle.
+-- Parts are built upright (Y is up) and the Grip is left at default, so the cup stands up.
+local UPRIGHT = CFrame.Angles(0, 0, math.rad(90)) -- makes a cylinder stand along Y
+
+local function addPart(tool, handle, name, shape, size, localCF, color, material, transparency)
 	local p = Instance.new("Part")
 	p.Name = name
 	p.Shape = shape
 	p.Size = size
 	p.Color = color
 	p.Material = material
+	p.Transparency = transparency or 0
 	p.CanCollide = false
 	p.Massless = true
 	p.TopSurface = Enum.SurfaceType.Smooth
@@ -128,34 +132,35 @@ local function addPart(tool, handle, name, shape, size, localCF, color, material
 	return p
 end
 
-local UPRIGHT = CFrame.Angles(0, 0, math.rad(90)) -- turns a cylinder's axis to point up
-
-local function makeCup(toolName, liquidColor, topColor)
+local function makeCup(toolName, liquidColor, foamColor)
 	local tool = Instance.new("Tool")
 	tool.Name = toolName
 	tool.RequiresHandle = true
 	tool.CanBeDropped = false
-	tool.Grip = CFrame.Angles(math.rad(-90), 0, 0) -- tilts the upright cup so it sits in the hand
 
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.4, 0.4, 0.4)
+	handle.Size = Vector3.new(0.6, 0.6, 0.6)
 	handle.Transparency = 1
 	handle.CanCollide = false
 	handle.Massless = true
 	handle.Parent = tool
 
-	-- Cup body (glass), liquid, foam top, lid, and straw. Y is up.
-	addPart(tool, handle, "Glass", Enum.PartType.Cylinder, Vector3.new(1.8, 0.95, 0.95),
-		CFrame.new(0, 0, 0) * UPRIGHT, WHITE, Enum.Material.Glass)
-	addPart(tool, handle, "Liquid", Enum.PartType.Cylinder, Vector3.new(1.2, 0.85, 0.85),
-		CFrame.new(0, -0.25, 0) * UPRIGHT, liquidColor, Enum.Material.SmoothPlastic)
-	addPart(tool, handle, "Foam", Enum.PartType.Cylinder, Vector3.new(0.5, 0.88, 0.88),
-		CFrame.new(0, 0.65, 0) * UPRIGHT, topColor, Enum.Material.SmoothPlastic)
-	addPart(tool, handle, "Lid", Enum.PartType.Cylinder, Vector3.new(0.12, 1.0, 1.0),
-		CFrame.new(0, 0.94, 0) * UPRIGHT, WHITE, Enum.Material.Plastic)
-	addPart(tool, handle, "Straw", Enum.PartType.Block, Vector3.new(0.2, 1.4, 0.2),
-		CFrame.new(0.15, 1.5, 0), CHARCOAL, Enum.Material.Plastic)
+	-- Glass shell: see-through so the drink color shows
+	addPart(tool, handle, "Glass", Enum.PartType.Cylinder, Vector3.new(1.8, 1.0, 1.0),
+		UPRIGHT, WHITE, Enum.Material.Glass, 0.7)
+	-- Drink: sits inside the glass, fully visible
+	addPart(tool, handle, "Liquid", Enum.PartType.Cylinder, Vector3.new(1.4, 0.8, 0.8),
+		CFrame.new(0, -0.2, 0) * UPRIGHT, liquidColor, Enum.Material.SmoothPlastic)
+	-- Foam or milk layer on top
+	addPart(tool, handle, "Foam", Enum.PartType.Cylinder, Vector3.new(0.5, 0.82, 0.82),
+		CFrame.new(0, 0.6, 0) * UPRIGHT, foamColor, Enum.Material.SmoothPlastic)
+	-- Lid
+	addPart(tool, handle, "Lid", Enum.PartType.Cylinder, Vector3.new(0.12, 1.02, 1.02),
+		CFrame.new(0, 0.92, 0) * UPRIGHT, WHITE, Enum.Material.Plastic, 0.2)
+	-- Straw
+	addPart(tool, handle, "Straw", Enum.PartType.Block, Vector3.new(0.2, 1.6, 0.2),
+		CFrame.new(0.2, 1.6, 0), CHARCOAL, Enum.Material.Plastic)
 
 	tool.Parent = StarterPack
 end
