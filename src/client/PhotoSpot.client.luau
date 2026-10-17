@@ -18,7 +18,6 @@ gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Start button sits above the hotbar
 local startButton = Instance.new("TextButton")
 startButton.Name = "StartButton"
 startButton.Text = "📸 Start photo booth"
@@ -34,7 +33,6 @@ startButton.Visible = false
 startButton.Parent = gui
 Instance.new("UICorner", startButton).CornerRadius = UDim.new(0.3, 0)
 
--- Countdown text
 local countLabel = Instance.new("TextLabel")
 countLabel.Name = "Countdown"
 countLabel.Size = UDim2.fromScale(0.5, 0.2)
@@ -62,9 +60,14 @@ local function flash()
 	task.delay(0.6, function() f:Destroy() end)
 end
 
--- Frozen copy of the character, pose included
+-- Copies the character with its current pose. Returns nil if it fails.
 local function snapshot(character)
-	local clone = character:Clone()
+	character.Archivable = true
+	local ok, clone = pcall(function() return character:Clone() end)
+	if not ok or not clone then
+		warn("PhotoBooth: could not copy character", clone)
+		return nil
+	end
 	for _, d in ipairs(clone:GetDescendants()) do
 		if d:IsA("Script") or d:IsA("LocalScript") or d:IsA("Animator") or d:IsA("Animation") or d:IsA("Sound") then
 			d:Destroy()
@@ -76,7 +79,6 @@ local function snapshot(character)
 	return clone
 end
 
--- Puts one snapshot inside a ViewportFrame, facing the camera
 local function fillViewport(vp, model)
 	local cam = Instance.new("Camera")
 	cam.CFrame = CFrame.lookAt(Vector3.new(0, 3.2, -9), Vector3.new(0, 3, 0))
@@ -88,7 +90,6 @@ local function fillViewport(vp, model)
 	copy:PivotTo(CFrame.new(0, 3, 0))
 end
 
--- Vertical film strip of all shots
 local function buildStrip(parent, list)
 	local strip = Instance.new("Frame")
 	strip.Size = UDim2.fromScale(1, 1)
@@ -111,12 +112,11 @@ local function buildStrip(parent, list)
 		vp.Ambient = Color3.fromRGB(190, 190, 190)
 		vp.LightColor = Color3.new(1, 1, 1)
 		vp.Parent = strip
-		fillViewport(vp, shot)
+		pcall(fillViewport, vp, shot)
 	end
 	return strip
 end
 
--- Shows the strip on the booth's outside wall
 local function updateWall()
 	local booth = Workspace:FindFirstChild("PhotoBooth")
 	local wall = booth and booth:FindFirstChild("StripWall")
@@ -134,7 +134,6 @@ local function updateWall()
 	buildStrip(sg, shots)
 end
 
--- Full-screen strip with a Done button
 local function showStripOverlay(onDone)
 	local overlay = Instance.new("Frame")
 	overlay.Name = "StripOverlay"
@@ -142,6 +141,7 @@ local function showStripOverlay(onDone)
 	overlay.BackgroundColor3 = Color3.new(0, 0, 0)
 	overlay.BackgroundTransparency = 0.35
 	overlay.BorderSizePixel = 0
+	overlay.ZIndex = 5
 	overlay.Parent = gui
 
 	local holder = Instance.new("Frame")
@@ -180,44 +180,54 @@ local function runSession()
 
 	running = true
 	startButton.Visible = false
-
 	for _, s in ipairs(shots) do s:Destroy() end
 	shots = {}
 
 	local oldWalk, oldJump = humanoid.WalkSpeed, humanoid.JumpPower
 	humanoid.WalkSpeed = 0
 	humanoid.JumpPower = 0
-	root.CFrame = CFrame.lookAt(SPOT, Vector3.new(CAM.X, SPOT.Y, CAM.Z))
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.CFrame = CFrame.lookAt(CAM, SPOT + Vector3.new(0, 1.5, 0))
 
-	for i = 1, SHOT_COUNT do
-		for n = COUNTDOWN, 1, -1 do
-			countLabel.Text = string.format("Photo %d/%d\n%d", i, SHOT_COUNT, n)
-			task.wait(1)
+	-- Always restore the player, even if something below fails
+	local ok, err = pcall(function()
+		for i = 1, SHOT_COUNT do
+			for n = COUNTDOWN, 1, -1 do
+				countLabel.Text = string.format("Photo %d/%d\n%d", i, SHOT_COUNT, n)
+				task.wait(1)
+			end
+			countLabel.Text = "📸"
+			flash()
+			local copy = snapshot(character)
+			if copy then table.insert(shots, copy) end
+			task.wait(0.4)
 		end
-		countLabel.Text = "📸"
-		flash()
-		table.insert(shots, snapshot(character))
-		task.wait(0.4)
-	end
-	countLabel.Text = ""
+	end)
 
+	countLabel.Text = ""
 	humanoid.WalkSpeed = oldWalk
 	humanoid.JumpPower = oldJump
 	camera.CameraType = Enum.CameraType.Custom
 
+	if not ok then
+		warn("PhotoBooth session error:", err)
+	end
+
 	updateWall()
-	showStripOverlay(function()
+	if #shots > 0 then
+		showStripOverlay(function() running = false end)
+	else
+		countLabel.Text = "Photo failed. Try again."
+		task.wait(2)
+		countLabel.Text = ""
 		running = false
-	end)
+	end
 end
 
 startButton.MouseButton1Click:Connect(function()
 	task.spawn(runSession)
 end)
 
--- Show the start button only when you stand inside the booth
 task.spawn(function()
 	while true do
 		local character = player.Character
